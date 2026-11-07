@@ -1,45 +1,47 @@
-# Fully automatic Python packaging tool V2.0
+# Fully automatic Python packaging tool V3.0
 
-V2.0 提供图形界面和一键打包：可将 Python 项目构建为 EXE/平台可执行程序，也可以把 Python、图片、配置、网页等任意项目文件归档为 ZIP、TAR.GZ、TAR.BZ2 或 TAR.XZ。
+V3.0 adds startup launchers that detect Python and can guide/attempt to install a compatible runtime before opening the graphical interface. The application can package Python projects as a platform executable or create ZIP/TAR archives from projects containing many file types.
 
-## 启动图形界面
+## Start without an existing Python installation
 
-需要 Python 3.8+ 和 Tkinter（多数 Python 安装自带）：
+- **Windows:** double-click `start.bat`. If Python 3.10+ is missing, the launcher offers to install Python 3.12 for the current user using Windows Package Manager (`winget`). Installations require explicit confirmation. If `winget` is unavailable, install Python from [python.org](https://www.python.org/downloads/windows/) and retry.
+- **macOS/Linux:** run `bash start.sh`. The launcher detects Python 3.10+ and Tkinter. With confirmation, it uses Homebrew on macOS or a supported Linux package manager (apt, dnf, zypper, pacman). Linux package managers may request administrator approval. Unsupported systems require manual installation.
+
+The bootstrap scripts are shell/PowerShell files so they can run before Python is present. They do not silently install software. The GUI requires Tkinter; if the selected Python distribution does not provide it, the launcher explains what is missing.
+
+> Review installation prompts and package-manager output before approving. Package availability and install permissions depend on your operating system and configured package sources.
+
+## GUI features
+
+Start the tool with `start.bat` / `start.sh`, or, if Python 3.10+ is already installed, run:
 
 ```bash
 python gui.py
 ```
 
-图形界面支持选择项目目录、入口文件、应用名称、图标、输出格式和输出位置。选择 EXE 时可选单文件/目录模式、GUI 隐藏控制台、清理缓存；缺少 PyInstaller 时可以勾选自动安装（需要网络）。选择 ZIP/TAR 时直接归档项目，不需要额外依赖。
+- **Executable:** package a `.py` entry point as a one-file or one-directory application using PyInstaller. GUI mode can hide the console.
+- **Archives:** create ZIP, TAR.GZ, TAR.BZ2, or TAR.XZ project archives. Archives preserve relative paths and omit common VCS directories, virtual environments, build output, caches, and bytecode.
+- Choose the project, entry point, icon, output format, and output location in the UI.
 
-> Windows 的 `.exe` 需要在 Windows 上构建。PyInstaller 不能通常不能跨操作系统交叉编译；macOS/Linux 上生成的是对应平台的可执行程序，不是 Windows EXE。
+For executable output, install PyInstaller with `python -m pip install pyinstaller`, or select the GUI option to let the tool install it. EXE files must be built on Windows; build separately on each target operating system.
 
-## 命令行打包 Python 程序
+## Command-line packaging
 
-V1.0 命令行仍然可用：
+The V1 command-line interface remains available:
 
 ```bash
 python -m pip install pyinstaller
 python packager.py --project ./my_app --entry main.py --name MyApp --mode onefile
 ```
 
-## 支持的归档格式
-
-- ZIP (`.zip`)
-- TAR + gzip (`.tar.gz`)
-- TAR + bzip2 (`.tar.bz2`)
-- TAR + xz (`.tar.xz`)
-
-GUI 归档项目时会保留相对目录结构，并自动排除 `.git`、虚拟环境、构建输出、缓存和 Python 字节码；不会修改项目源文件。输出归档可放在项目目录下。
-
-## 测试
+## Tests
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-## 安全和平台说明
+## Security and platform notes
 
-- 仅对你信任的项目运行打包。自动安装 PyInstaller 会通过 pip 安装第三方软件包。
-- 归档包包含项目文件，请在分享前检查是否包含密钥、凭据或其他敏感信息。
-- EXE 需要在 Windows 环境构建；其他系统请在对应系统分别构建和测试。
+- Only package projects you trust. PyInstaller analyzes and imports project code during builds.
+- Archives include project files; inspect for credentials/secrets before sharing.
+- Python installers come from the configured OS package manager (Windows uses the `Python.Python.3.12` winget package). This project does not bundle an interpreter or bypass OS security/permission prompts.
