@@ -2,15 +2,11 @@
 from __future__ import annotations
 
 import queue
-import subprocess
 import sys
 import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
-
-from archive_builder import ARCHIVE_FORMATS, create_archive
-from packager import build_command, discover_entry, ensure_pyinstaller
 
 VERSION = "4.0.0"
 EXE_FORMAT = "可执行程序（当前平台）"
@@ -94,7 +90,7 @@ class PackagerApp(tk.Tk):
         output = ttk.LabelFrame(settings, text="  02  输出格式与位置  ", padding=13)
         output.pack(fill="x", pady=(0, 11))
         ttk.Label(output, text="输出格式", width=12).grid(row=0, column=0, sticky="w", pady=5)
-        self.format_box = ttk.Combobox(output, textvariable=self.format_var, state="readonly", values=(EXE_FORMAT, *ARCHIVE_FORMATS.keys()), width=28)
+        self.format_box = ttk.Combobox(output, textvariable=self.format_var, state="readonly", values=(EXE_FORMAT, "ZIP (.zip)", "TAR.GZ (.tar.gz)", "TAR.BZ2 (.tar.bz2)", "TAR.XZ (.tar.xz)"), width=28)
         self.format_box.grid(row=0, column=1, sticky="ew", padx=6, pady=5)
         self.format_box.bind("<<ComboboxSelected>>", lambda _e: self._update_output())
         ttk.Label(output, text="构建模式").grid(row=0, column=2, sticky="w", padx=(14, 4), pady=5)
@@ -174,6 +170,7 @@ class PackagerApp(tk.Tk):
             self.project_var.set(selected)
             self.name_var.set(Path(selected).name)
             try:
+                from packager import discover_entry
                 self.entry_var.set(str(discover_entry(Path(selected))))
             except ValueError:
                 self.entry_var.set("")
@@ -193,6 +190,7 @@ class PackagerApp(tk.Tk):
         return self.format_var.get() == EXE_FORMAT
 
     def _extension(self) -> str:
+        from archive_builder import ARCHIVE_FORMATS
         return ARCHIVE_FORMATS[self.format_var.get()][0]
 
     def _update_output(self) -> None:
@@ -204,7 +202,8 @@ class PackagerApp(tk.Tk):
             if self.mode_var.get() == "单文件":
                 output /= filename
         else:
-            output = project / "dist" / (name + self._extension())
+            extension = {"ZIP (.zip)": ".zip", "TAR.GZ (.tar.gz)": ".tar.gz", "TAR.BZ2 (.tar.bz2)": ".tar.bz2", "TAR.XZ (.tar.xz)": ".tar.xz"}[self.format_var.get()]
+            output = project / "dist" / (name + extension)
         self.output_var.set(str(output))
         enabled = self._is_executable()
         self.mode_box.configure(state="readonly" if enabled else "disabled")
@@ -230,6 +229,7 @@ class PackagerApp(tk.Tk):
         output = Path(self.output_var.get()).expanduser().resolve()
         result = {"project": project, "name": name, "output": output}
         if self._is_executable():
+            from packager import discover_entry
             text = self.entry_var.get().strip()
             entry = Path(text).expanduser() if text else discover_entry(project)
             if not entry.is_absolute():
@@ -246,6 +246,7 @@ class PackagerApp(tk.Tk):
                 raise ValueError(f"图标文件不存在：{icon}")
             result.update(kind="exe", entry=entry, icon=icon, mode="onefile" if self.mode_var.get() == "单文件" else "onedir", windowed=self.windowed_var.get(), clean=self.clean_var.get(), install=self.install_var.get())
         else:
+            from archive_builder import ARCHIVE_FORMATS
             fmt = self.format_var.get()
             if not output.name.lower().endswith(ARCHIVE_FORMATS[fmt][0]):
                 raise ValueError(f"输出文件扩展名必须是 {ARCHIVE_FORMATS[fmt][0]}")
@@ -270,10 +271,13 @@ class PackagerApp(tk.Tk):
 
     def _build_worker(self, settings: dict) -> None:
         try:
+            import subprocess
             if settings["kind"] == "archive":
+                from archive_builder import create_archive
                 result = create_archive(settings["project"], settings["output"], settings["format"])
                 self.events.put(("log", f"归档完成：{result}"))
             else:
+                from packager import build_command, ensure_pyinstaller
                 ensure_pyinstaller(settings["install"])
                 work = settings["project"] / "build" / "auto_packager"
                 destination = settings["output"].parent if settings["mode"] == "onefile" else settings["output"]
@@ -323,6 +327,7 @@ class PackagerApp(tk.Tk):
         self.log.configure(state="disabled")
 
     def _open_output(self) -> None:
+        import subprocess
         path = Path(self.output_var.get()).expanduser()
         folder = path if self._is_executable() and self.mode_var.get() == "目录" else path.parent
         if not folder.exists():

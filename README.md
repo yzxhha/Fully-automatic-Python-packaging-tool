@@ -1,6 +1,6 @@
 # Fully automatic Python packaging tool V4.0
 
-V4.0 优化了桌面界面：重新整理项目和输出设置，增加浅色/深色主题切换、构建进度动画、独立日志页和清空日志功能。无需额外 UI 依赖，使用 Python 自带 Tkinter。
+V4.0 优化了桌面界面，并将归档和 PyInstaller 相关模块改为按需加载：启动时先显示界面，只有选择项目或开始构建时才导入相应打包模块，减少启动阶段工作。无需额外 UI 依赖，使用 Python 自带 Tkinter。
 
 ## 启动
 
@@ -19,6 +19,7 @@ V3.0 启动器仍可使用：Windows 双击 `start.bat`；macOS/Linux 运行 `ba
 - 输出为当前平台可执行程序（PyInstaller），或 ZIP、TAR.GZ、TAR.BZ2、TAR.XZ。
 - 可执行程序支持单文件/目录模式、GUI 隐藏控制台、清理缓存及可选安装 PyInstaller。
 - 后台运行构建任务，提供状态、进度动画和实时日志。
+- 打包相关模块按需导入，避免 GUI 启动时预先载入归档和构建代码。
 
 ## 注意事项
 
