@@ -2,7 +2,9 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
+import archive_builder
 from archive_builder import ARCHIVE_FORMATS, create_archive
 
 
@@ -58,6 +60,25 @@ class ArchiveBuilderTests(unittest.TestCase):
             project = self.make_project(Path(directory))
             with self.assertRaisesRegex(ValueError, "扩展名"):
                 create_archive(project, Path(directory) / "sample.tar", "ZIP (.zip)")
+
+    def test_failed_write_preserves_existing_archive_and_cleans_temp(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            project = self.make_project(root)
+            output = root / "sample.zip"
+            output.write_bytes(b"previous archive")
+            with patch.object(archive_builder.zipfile, "ZipFile", side_effect=OSError("disk error")):
+                with self.assertRaisesRegex(OSError, "disk error"):
+                    create_archive(project, output, "ZIP (.zip)")
+            self.assertEqual(output.read_bytes(), b"previous archive")
+            self.assertEqual(list(root.glob(".sample.zip.*.tmp")), [])
+
+    def test_case_insensitive_bytecode_exclusion(self):
+        with tempfile.TemporaryDirectory() as directory:
+            project = self.make_project(Path(directory))
+            (project / "module.PYC").write_bytes(b"bytecode")
+            paths = list(archive_builder.iter_project_files(project))
+            self.assertFalse(any(path.name.lower().endswith(".pyc") for path in paths))
 
 
 if __name__ == "__main__":
