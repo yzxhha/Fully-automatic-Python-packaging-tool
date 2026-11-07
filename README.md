@@ -1,39 +1,34 @@
-# Fully automatic Python packaging tool V4.0
+# Fully automatic Python packaging tool — performance-focused UI
 
-V4.0 优化了桌面界面，并将归档和 PyInstaller 相关模块改为按需加载：启动时先显示界面，只有选择项目或开始构建时才导入相应打包模块，减少启动阶段工作。无需额外 UI 依赖，使用 Python 自带 Tkinter。
+界面优先保持响应速度：轻量 Tkinter 启动、后台入口扫描/打包、批量处理构建日志并限制日志缓存。支持浅/深色主题、可执行程序构建及 ZIP/TAR 多格式归档。
 
 ## 启动
-
-已安装 Python 3.10+ 和 Tkinter 时：
 
 ```bash
 python gui.py
 ```
 
-V3.0 启动器仍可使用：Windows 双击 `start.bat`；macOS/Linux 运行 `bash start.sh`。启动器检测 Python，必要时在用户确认后尝试通过系统包管理器安装。网络、权限和平台策略可能影响安装。
+需要 Python 3.10+ 和 Tkinter。Windows/macOS/Linux 均可运行；PyInstaller 可执行文件需要在目标系统分别构建。
 
-## 界面功能
+## 性能和稳定性
 
-- 浅色/深色主题切换。
-- 项目目录、Python 入口、图标、应用名称集中配置。
-- 输出为当前平台可执行程序（PyInstaller），或 ZIP、TAR.GZ、TAR.BZ2、TAR.XZ。
-- 可执行程序支持单文件/目录模式、GUI 隐藏控制台、清理缓存及可选安装 PyInstaller。
-- 后台运行构建任务，提供状态、进度动画和实时日志。
-- 打包相关模块按需导入，避免 GUI 启动时预先载入归档和构建代码。
+- 启动只导入标准 UI 库；归档器和 PyInstaller 相关模块按功能使用时导入。
+- 项目入口扫描及构建/压缩任务放在后台线程，避免长时间 I/O 阻塞窗口。
+- 日志按批次更新，每次 UI 轮询最多处理固定数量的事件，并自动限制最近日志行数，避免长构建日志持续占用内存或拖慢界面。
+- 应用名称输入采用短暂防抖，避免每个按键都重复计算输出路径。
+
+## 功能
+
+- 单文件/目录模式构建当前平台可执行程序（PyInstaller）。
+- 输出 ZIP、TAR.GZ、TAR.BZ2、TAR.XZ 项目归档。
+- 深色/浅色主题、输出路径选择、构建进度和实时日志。
+- 构建时禁用重复启动，项目/入口路径会进行基本校验。
 
 ## 注意事项
 
-- Windows `.exe` 应在 Windows 上构建；其他系统生成当前系统平台的可执行程序。建议在各目标系统分别构建和测试。
-- 自动安装 PyInstaller 使用当前 Python 环境的 pip。
-- ZIP/TAR 归档会保留相对路径并排除常见虚拟环境、构建目录、缓存和字节码。分享前请检查是否含有密钥或敏感文件。
-- 只对可信项目运行打包；PyInstaller 会分析项目代码。
-
-## 命令行
-
-```bash
-python -m pip install pyinstaller
-python packager.py --project ./my_app --entry main.py --name MyApp --mode onefile
-```
+- Windows EXE 需在 Windows 上构建。跨系统构建请在对应操作系统执行。
+- PyInstaller 会分析项目代码，仅打包你信任的项目。
+- 分享归档前检查是否包含密钥或敏感信息。
 
 ## 测试
 
